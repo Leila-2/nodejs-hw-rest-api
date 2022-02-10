@@ -1,11 +1,12 @@
 /* eslint-disable new-cap */
 
-const express = require('express')
+const mongoose = require('mongoose')
+const { Router } = require('express')
 const createError = require("http-errors");
 const { Contact, schemas } = require('../../models/contact')
 
 
-const router = express.Router()
+const router = new Router()
 
 // GET /api/contacts
 
@@ -22,9 +23,12 @@ router.get('/', async (req, res, next) => {
 router.get('/:contactId', async (req, res, next) => {
   try {
     const { contactId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(400, "invalid ID")
+    }
     const result = await Contact.findById(contactId);
+
     if (!result) {
-      // eslint-disable-next-line new-cap
       throw new createError(404, "Not found");
     }
     res.json(result)
@@ -43,13 +47,9 @@ router.post('/', async (req, res, next) => {
     if (error) {
       throw new createError(400, error.message)
     }
-
     const result = await Contact.create(req.body)
     res.status(201).json(result)
   } catch (error) {
-    if (error.message.includes("validation failed")) {
-      error.status = 400;
-    }
     next(error)
   }
 })
@@ -57,6 +57,9 @@ router.post('/', async (req, res, next) => {
 router.delete('/:contactId', async (req, res, next) => {
   try {
     const { contactId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(400, "invalid ID")
+    }
     const result = await Contact.findByIdAndDelete(contactId)
     if (!result) {
       throw new createError(404, "Not found")
@@ -74,7 +77,9 @@ router.put('/:contactId', async (req, res, next) => {
       throw new createError(400, error.message)
     }
     const { contactId } = req.params
-
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(400, "invalid ID")
+    }
     const result = await Contact.findByIdAndUpdate(contactId, req.body, { new: true })
     if (!result) {
       throw new createError(404, "Not found")
@@ -92,7 +97,9 @@ router.patch('/:contactId/favorite', async (req, res, next) => {
       throw new createError(400, "missing field favorite")
     }
     const { contactId } = req.params
-
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(400, "invalid ID")
+    }
     const result = await Contact.findByIdAndUpdate(contactId, req.body, { new: true })
     if (!result) {
       throw new createError(404, "Not found")
