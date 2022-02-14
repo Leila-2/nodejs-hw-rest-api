@@ -1,21 +1,18 @@
 /* eslint-disable new-cap */
-const express = require('express')
+
+const mongoose = require('mongoose')
+const { Router } = require('express')
 const createError = require("http-errors");
-const contacts = require('../../models/contacts')
+const { Contact, schemas } = require('../../models/contact')
 
-const Joi = require("joi");
 
-const contsctSchema = Joi.object({
-  name: Joi.string().required(),
-  phone: Joi.string().required(),
-  email: Joi.string().email()
-});
+const router = new Router()
 
-const router = express.Router()
 // GET /api/contacts
+
 router.get('/', async (req, res, next) => {
   try {
-    const result = await contacts.listContacts()
+    const result = await Contact.find()
     res.json(result)
   } catch (error) {
     next(error);
@@ -25,28 +22,32 @@ router.get('/', async (req, res, next) => {
 
 router.get('/:contactId', async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const result = await contacts.getContactById(id)
+    const { contactId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(400, "invalid ID")
+    }
+    const result = await Contact.findById(contactId);
+
     if (!result) {
-      // eslint-disable-next-line new-cap
       throw new createError(404, "Not found");
     }
     res.json(result)
   }
   catch (error) {
+    if (error.message.includes("Cast to ObjectId failed")) {
+      error.status = 404
+    }
     next(error)
   }
 })
 
 router.post('/', async (req, res, next) => {
   try {
-    const { error } = contsctSchema.validate(req.body)
+    const { error } = schemas.add.validate(req.body)
     if (error) {
-      // eslint-disable-next-line new-cap
       throw new createError(400, error.message)
     }
-    const { name, email, phone } = req.body
-    const result = await contacts.addContact(name, email, phone)
+    const result = await Contact.create(req.body)
     res.status(201).json(result)
   } catch (error) {
     next(error)
@@ -56,7 +57,10 @@ router.post('/', async (req, res, next) => {
 router.delete('/:contactId', async (req, res, next) => {
   try {
     const { contactId } = req.params;
-    const result = await contacts.removeContact(contactId)
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(400, "invalid ID")
+    }
+    const result = await Contact.findByIdAndDelete(contactId)
     if (!result) {
       throw new createError(404, "Not found")
     }
@@ -68,13 +72,35 @@ router.delete('/:contactId', async (req, res, next) => {
 
 router.put('/:contactId', async (req, res, next) => {
   try {
-    const { error } = contsctSchema.validate(req.body)
+    const { error } = schemas.add.validate(req.body)
     if (error) {
       throw new createError(400, error.message)
     }
     const { contactId } = req.params
-    const { name, email, phone } = req.body
-    const result = await contacts.updateContact(contactId, name, email, phone)
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(400, "invalid ID")
+    }
+    const result = await Contact.findByIdAndUpdate(contactId, req.body, { new: true })
+    if (!result) {
+      throw new createError(404, "Not found")
+    }
+    res.json(result)
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.patch('/:contactId/favorite', async (req, res, next) => {
+  try {
+    const { error } = schemas.update.validate(req.body)
+    if (error) {
+      throw new createError(400, "missing field favorite")
+    }
+    const { contactId } = req.params
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw new createError(400, "invalid ID")
+    }
+    const result = await Contact.findByIdAndUpdate(contactId, req.body, { new: true })
     if (!result) {
       throw new createError(404, "Not found")
     }
