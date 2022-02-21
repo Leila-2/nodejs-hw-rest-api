@@ -32,7 +32,8 @@ router.patch('/avatars', authenticate, upload.single('avatar'), async (req, res,
         const newFileName = `${_id}.${extension}`
         const result = path.join(avatarsDir, newFileName)
         await fs.rename(tempUpload, result)
-        const avatarURL = path.join('avatars', newFileName)
+        const avatarURL = path.join(req.protocol, '://', req.get('host'), "public", "avatars", newFileName)
+        // console.log(avatarURL)
         await User.findByIdAndUpdate(_id, { avatarURL })
         res.json({
             avatarURL
