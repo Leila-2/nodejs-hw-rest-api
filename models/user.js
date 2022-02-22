@@ -23,6 +23,10 @@ const userSchema = Schema({
         type: String,
         default: null,
     },
+    avatarURL: {
+        type: String
+
+    }
 
 }, { versionKey: false })
 
