@@ -10,7 +10,7 @@ const CreateError = require('http-errors')
 const sendMail = require('../../helpers/sendMail')
 
 
-router.get("/verify/: verificationToken", async (req, res, next) => {
+router.get("/verify/:verificationToken", async (req, res, next) => {
     try {
         const { verificationToken } = req.params
         const user = await User.findOne({ verificationToken })
@@ -34,6 +34,9 @@ router.post('/verify', async (req, res, next) => {
         }
         const { email } = req.body
         const user = await User.findOne({ email })
+        if (!user) {
+            res.status(404).json({ message: "user not found" });
+        }
         if (user.verify) {
             throw new CreateError(400, "Verification has already been passed")
         }
