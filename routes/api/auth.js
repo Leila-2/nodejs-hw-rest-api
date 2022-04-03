@@ -7,6 +7,8 @@ const jwt = require('jsonwebtoken')
 const { User, schemas } = require('../../models/user')
 const { SECRET_KEY } = process.env
 const gravatar = require('gravatar')
+const sendMail = require('../../helpers/sendMail')
+const { v4 } = require('uuid')
 
 
 /// Signup
@@ -24,7 +26,14 @@ router.post('/users/signup', async (req, res, next) => {
         const salt = await bcrypt.genSalt(10)
         const hashPassword = await bcrypt.hash(password, salt)
         const avatarURL = gravatar.url(email)
-        await User.create({ email, avatarURL, password: hashPassword })
+        const verificationToken = v4()
+        await User.create({ email, avatarURL, verificationToken, password: hashPassword })
+        const mail = {
+            to: email,
+            subject: 'Подтверждение email',
+            html: `<a target="_blank" href='http://localhost:3000/api/users/${verificationToken}'>Нажмите чтобы подтвердить email</a>`
+        }
+        await sendMail(mail);
         res.status(201).json({
             user: {
                 email,
@@ -47,6 +56,9 @@ router.post('/users/login', async (req, res, next) => {
         const user = await User.findOne({ email })
         if (!user) {
             throw new СreateError(401, "Email or password is wrong")
+        }
+        if (!user.verify) {
+            throw new СreateError(401, "User not verify")
         }
         const compareResult = await bcrypt.compare(password, user.password)
         if (!compareResult) {
